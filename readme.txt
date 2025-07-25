@@ -47,7 +47,7 @@ This plugin must be installed on both your production site and dev site to push 
 
 = Does this plugin sync content both ways? =
 
-No. Content is pushed one way only: from your staging/dev site to your production site.
+Yes. You just need to configure the settings accordingly.
 
 = Is the plugin required on both websites? =
 
