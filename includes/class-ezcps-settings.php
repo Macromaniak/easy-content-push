@@ -124,7 +124,7 @@ class EZCPS_Settings
             return;
         }
         echo '<div class="notice notice-warning is-dismissible">
-            <p><strong>Easy StagePush:</strong> ' . esc_html__('Make sure the Easy StagePush Receiver plugin is installed and active on the production site for this to work.', 'easy-content-push') . '</p>
+            <p><strong>Easy ContentPush:</strong> ' . esc_html__('Make sure the Easy ContentPush plugin is installed and active on the production site as well for this to work.', 'easy-content-push') . '</p>
         </div>';
     }
 
@@ -133,7 +133,12 @@ class EZCPS_Settings
         if (! current_user_can('manage_options')) return;
         $prod_url = EZCPS_Settings::get_option('prod_url');
         if (empty($prod_url)) {
-            echo '<div class="notice notice-error is-dismissible"><p><strong>Easy StagePush:</strong> ' . esc_html__('Production URL is not set. Content syncing will not work.', 'easy-content-push') . '</p></div>';
+            echo '<div class="notice notice-error is-dismissible"><p><strong>Easy ContentPush:</strong> ' . esc_html__('Target Site URL is not set. You cannot send content without setting it.', 'easy-content-push') . '</p></div>';
+        }
+
+        $dev_url = EZCPS_Settings::get_option('dev_url');
+        if (empty($dev_url)) {
+            echo '<div class="notice notice-error is-dismissible"><p><strong>Easy ContentPush:</strong> ' . esc_html__('Origin Site URL is not set. You cannot receive content without setting it.', 'easy-content-push') . '</p></div>';
         }
     }
 }
