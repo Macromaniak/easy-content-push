@@ -61,7 +61,6 @@ class EZCPS_Push
     public function ezcps_add_push_button()
     {
         global $post;
-        error_log(print_r($post, true));
         if (! $post) return;
         $post_types = EZCPS_Settings::get_option('post_types', []);
         if (in_array($post->post_type, $post_types, true)) {
@@ -74,7 +73,6 @@ class EZCPS_Push
 
     public function ezcps_ajax_push_to_live()
     {
-        error_log('handler runs');
         check_ajax_referer('ezcps_push_to_live', 'security');
         if (! current_user_can('edit_post', intval($_POST['post_id']))) {
             wp_send_json_error(['message' => __('You do not have permission.', 'easy-content-push')]);
@@ -127,13 +125,10 @@ class EZCPS_Push
             'yoast_meta' => ezcps_get_yoast_meta($post_id),
         ];
 
-        error_log('payload');
-        error_log(print_r($payload, true));
-
         $response = wp_remote_post(
             trailingslashit($prod_url) . 'wp-json/ezcps-sync/v1/import-post',
             [
-                'headers' => ['Content-Type' => 'application/json'],
+                'headers' => ['Content-Type' => 'application/json', 'X-EZCPS-Origin' => get_site_url()],
                 'body'    => wp_json_encode($payload),
                 'timeout' => 20,
             ]
@@ -145,6 +140,15 @@ class EZCPS_Push
         }
 
         $body = wp_remote_retrieve_body($response);
+        $data = json_decode($body, true);
+
+        if (!isset($data['post_id'])) {
+            if (isset($data['message'])) {
+                wp_send_json_error(['message' => $data['message']]);
+            } else
+                wp_send_json_error(['message' => 'Something went wrong!']);
+        }
+
         error_log('Push to live response: ' . $body);
 
         wp_send_json_success(['message' => __('Successfully pushed to live.', 'easy-content-push')]);

@@ -1,15 +1,18 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-class EZCPS_Importer {
+class EZCPS_Importer
+{
 
     // Register the REST API route
-    public static function register() {
+    public static function register()
+    {
         add_action('rest_api_init', [__CLASS__, 'ezcps_register_routes']);
     }
 
     // Register the endpoint
-    public static function ezcps_register_routes() {
+    public static function ezcps_register_routes()
+    {
         register_rest_route('ezcps-sync/v1', '/import-post', [
             'methods' => 'POST',
             'callback' => [__CLASS__, 'ezcps_import_post_from_dev'],
@@ -18,30 +21,35 @@ class EZCPS_Importer {
     }
 
     // Check the request origin
-    public static function ezcps_check_request_origin($request) {
-        // Retrieve the stored source URL from plugin settings
-        $source_url = EZCPS_Settings::get_option('dev_url');
-        error_log('set source url ' .  $source_url);
-        // Get the Origin or Referer header from the request
-        $origin = $request->get_header('origin') ?: $request->get_header('referer');
-        error_log('request origin ' . $origin);
+    public static function ezcps_check_request_origin($request)
+    {
+        $source_url = rtrim(EZCPS_Settings::get_option('dev_url'), '/');
+        $origin = rtrim($request->get_header('X-EZCPS-Origin'), '/');
 
-        if (!$origin) {
-            return new WP_REST_Response(['error' => 'No origin or referer header provided.'], 400);
+        if (!$origin || empty($origin)) {
+            error_log('No origin header provided');
+            return new WP_Error(
+                'ezcps_missing_origin',
+                'No origin header provided!',
+                ['status' => 400]
+            );
         }
 
-        // Check if the origin matches the stored source URL
         if ($origin !== $source_url) {
-            return new WP_REST_Response(['error' => 'Unauthorized source.'], 403); // 403 Forbidden
+            error_log('Unauthorized source');
+            return new WP_Error(
+                'ezcps_unauthorized',
+                'Unauthorized source!',
+                ['status' => 403]
+            );
         }
 
-        // Allow the request if the origin matches
         return true;
     }
 
     // Callback function for importing post data
-    public static function ezcps_import_post_from_dev($request) {
-        error_log('starting import!');
+    public static function ezcps_import_post_from_dev($request)
+    {
         $params = $request->get_json_params();
         $post_data = $params['post'];
         $acf_data = $params['acf_fields'];
@@ -65,9 +73,7 @@ class EZCPS_Importer {
         }
 
         $existing = get_page_by_path($page_path, OBJECT, $post_data['post_type']);
-        error_log('incoming post slug ' . $post_data['post_name']);
-        error_log('incoming post type ' . $post_data['post_type']);
-        error_log(print_r($existing, true));
+        
         if ($existing) {
             error_log('post exists!!');
             $post_data['ID'] = $existing->ID;
@@ -126,7 +132,8 @@ class EZCPS_Importer {
     }
 
     // Handle ACF media fields
-    public static function ezcps_handle_acf_media($fields, $post_id) {
+    public static function ezcps_handle_acf_media($fields, $post_id)
+    {
         foreach ($fields as $key => &$value) {
             if (is_array($value)) {
                 if (!empty($value) && isset($value[0]['post_type'], $value[0]['slug'])) {
@@ -150,7 +157,8 @@ class EZCPS_Importer {
     }
 
     // Resolve post reference
-    public static function ezcps_resolve_post_reference($ref) {
+    public static function ezcps_resolve_post_reference($ref)
+    {
         if (is_array($ref) && isset($ref['post_type'], $ref['slug'])) {
             $post = get_page_by_path($ref['slug'], OBJECT, $ref['post_type']);
             return $post ? $post->ID : null;
@@ -159,7 +167,8 @@ class EZCPS_Importer {
     }
 
     // Find existing attachment by URL
-    public static function ezcps_find_existing_attachment_by_url($url) {
+    public static function ezcps_find_existing_attachment_by_url($url)
+    {
         $filename = basename(parse_url($url, PHP_URL_PATH));
         $args = [
             'post_type'   => 'attachment',
@@ -183,7 +192,8 @@ class EZCPS_Importer {
     }
 
     // Sideload file (helper function)
-    public static function ezcps_sideload_file($url, $post_id) {
+    public static function ezcps_sideload_file($url, $post_id)
+    {
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/media.php';
         require_once ABSPATH . 'wp-admin/includes/image.php';
@@ -209,7 +219,8 @@ class EZCPS_Importer {
     }
 
     // Allow SVG mime type for uploads
-    public static function ezcps_allow_svg_mime($mimes) {
+    public static function ezcps_allow_svg_mime($mimes)
+    {
         $mimes['svg'] = 'image/svg+xml';
         return $mimes;
     }
