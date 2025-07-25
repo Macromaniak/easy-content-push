@@ -16,9 +16,9 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 define( 'EZCPS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EZCPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
-require_once EZCPS_PLUGIN_DIR . 'includes/esps-helpers.php';
-require_once EZCPS_PLUGIN_DIR . 'includes/class-esps-settings.php';
-require_once EZCPS_PLUGIN_DIR . 'includes/class-esps-push.php';
+require_once EZCPS_PLUGIN_DIR . 'includes/ezcps-helpers.php';
+require_once EZCPS_PLUGIN_DIR . 'includes/class-ezcps-settings.php';
+require_once EZCPS_PLUGIN_DIR . 'includes/class-ezcps-push.php';
 require_once EZCPS_PLUGIN_DIR . 'includes/class-receiver.php';
 
 // Initialize settings.

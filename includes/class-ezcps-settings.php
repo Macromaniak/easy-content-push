@@ -28,7 +28,7 @@ class EZCPS_Settings
             esc_html__('Easy ContentPush Settings', 'easy-content-push'),
             esc_html__('Easy ContentPush', 'easy-content-push'),
             'manage_options',
-            'esps-settings',
+            'ezcps-settings',
             [$this, 'render_settings_page']
         );
     }
@@ -37,13 +37,13 @@ class EZCPS_Settings
     {
         register_setting('ezcps_settings_group', $this->option_key, [$this, 'sanitize_settings']);
 
-        add_settings_section('ezcps_main_section', __('Configuration', 'easy-content-push'), null, 'esps-settings');
+        add_settings_section('ezcps_main_section', __('Configuration', 'easy-content-push'), null, 'ezcps-settings');
 
         add_settings_field(
             'prod_url',
             __('Target Site URL (to push content to)', 'easy-content-push'),
             [$this, 'render_text_field'],
-            'esps-settings',
+            'ezcps-settings',
             'ezcps_main_section',
             ['label_for' => 'prod_url', 'placeholder' => '']
         );
@@ -51,7 +51,7 @@ class EZCPS_Settings
             'dev_url',
             __('Origin Site URL (to receive content from)', 'easy-content-push'),
             [$this, 'render_text_field'],
-            'esps-settings',
+            'ezcps-settings',
             'ezcps_main_section',
             ['label_for' => 'dev_url', 'placeholder' => '']
         );
@@ -59,7 +59,7 @@ class EZCPS_Settings
             'post_types',
             __('Post Types to Allow Push', 'easy-content-push'),
             [$this, 'render_post_types_multiselect'],
-            'esps-settings',
+            'ezcps-settings',
             'ezcps_main_section',
             ['label_for' => 'post_types']
         );
@@ -82,7 +82,7 @@ class EZCPS_Settings
             <form method="post" action="options.php">
                 <?php
                 settings_fields('ezcps_settings_group');
-                do_settings_sections('esps-settings');
+                do_settings_sections('ezcps-settings');
                 submit_button();
                 ?>
             </form>
@@ -104,7 +104,7 @@ class EZCPS_Settings
         $selected = $options['post_types'] ?? [];
 
         $post_types = get_post_types(['show_ui' => true], 'objects');
-        echo "<select id='" . esc_attr('post_types') . "' class='esps-chosen' name='" . esc_attr($this->option_key) . "[post_types][]' multiple='multiple' style='width: 300px; max-width: 100%;'>";
+        echo "<select id='" . esc_attr('post_types') . "' class='ezcps-chosen' name='" . esc_attr($this->option_key) . "[post_types][]' multiple='multiple' style='width: 300px; max-width: 100%;'>";
         foreach ($post_types as $type) {
             $is_selected = in_array($type->name, $selected) ? 'selected' : '';
             echo "<option value='" . esc_attr($type->name) . "' {$is_selected}>" . esc_html($type->label) . "</option>";

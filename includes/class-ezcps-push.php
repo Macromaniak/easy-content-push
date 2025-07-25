@@ -24,14 +24,14 @@ class EZCPS_Push
             $post_types = EZCPS_Settings::get_option('post_types', []);
             if (in_array($post->post_type, $post_types, true)) {
                 wp_enqueue_script(
-                    'esps-admin-js',
-                    EZCPS_PLUGIN_URL . 'assets/js/esps-admin.js',
+                    'ezcps-admin-js',
+                    EZCPS_PLUGIN_URL . 'assets/js/ezcps-admin.js',
                     ['jquery'],
                     '1.1',
                     true
                 );
                 wp_localize_script(
-                    'esps-admin-js',
+                    'ezcps-admin-js',
                     'ezcps_ajax_object',
                     [
                         'ajax_url' => admin_url('admin-ajax.php'),
@@ -48,7 +48,7 @@ class EZCPS_Push
         $post_types = EZCPS_Settings::get_option('post_types', []);
         foreach ($post_types as $post_type) {
             add_meta_box(
-                'esps-push-to-live',
+                'ezcps-push-to-live',
                 __('Easy StagePush', 'easy-content-push'),
                 array($this, 'ezcps_add_push_button'),
                 $post_type,
@@ -65,9 +65,9 @@ class EZCPS_Push
         if (! $post) return;
         $post_types = EZCPS_Settings::get_option('post_types', []);
         if (in_array($post->post_type, $post_types, true)) {
-            echo '<div id="esps-push-to-live-container" style="margin-top:15px;">';
-            echo '<button type="button" class="button button-primary" id="esps-push-to-live-btn">' . esc_html__('Push to Live', 'easy-content-push') . '</button>';
-            echo '<p id="esps-push-to-live-msg"></p>';
+            echo '<div id="ezcps-push-to-live-container" style="margin-top:15px;">';
+            echo '<button type="button" class="button button-primary" id="ezcps-push-to-live-btn">' . esc_html__('Push to Live', 'easy-content-push') . '</button>';
+            echo '<p id="ezcps-push-to-live-msg"></p>';
             echo '</div>';
         }
     }
@@ -131,7 +131,7 @@ class EZCPS_Push
         error_log(print_r($payload, true));
 
         $response = wp_remote_post(
-            trailingslashit($prod_url) . 'wp-json/esps-sync/v1/import-post',
+            trailingslashit($prod_url) . 'wp-json/ezcps-sync/v1/import-post',
             [
                 'headers' => ['Content-Type' => 'application/json'],
                 'body'    => wp_json_encode($payload),

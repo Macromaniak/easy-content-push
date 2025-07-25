@@ -1,8 +1,8 @@
 jQuery(document).ready(function($) {
-    $('#esps-push-to-live-btn').on('click', function(e) {
+    $('#ezcps-push-to-live-btn').on('click', function(e) {
         e.preventDefault();
         var $btn = $(this);
-        var $msg = $('#esps-push-to-live-msg');
+        var $msg = $('#ezcps-push-to-live-msg');
         $btn.prop('disabled', true);
         $msg.text('Pushing...');
         $.ajax({

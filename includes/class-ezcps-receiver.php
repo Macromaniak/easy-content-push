@@ -10,7 +10,7 @@ class EZCPS_Importer {
 
     // Register the endpoint
     public static function ezcps_register_routes() {
-        register_rest_route('esps-sync/v1', '/import-post', [
+        register_rest_route('ezcps-sync/v1', '/import-post', [
             'methods' => 'POST',
             'callback' => [__CLASS__, 'ezcps_import_post_from_dev'],
             'permission_callback' => [__CLASS__, 'ezcps_check_request_origin']
