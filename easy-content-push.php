@@ -19,7 +19,7 @@ define( 'EZCPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 require_once EZCPS_PLUGIN_DIR . 'includes/ezcps-helpers.php';
 require_once EZCPS_PLUGIN_DIR . 'includes/class-ezcps-settings.php';
 require_once EZCPS_PLUGIN_DIR . 'includes/class-ezcps-push.php';
-require_once EZCPS_PLUGIN_DIR . 'includes/class-receiver.php';
+require_once EZCPS_PLUGIN_DIR . 'includes/class-ezcps-receiver.php';
 
 // Initialize settings.
 new EZCPS_Settings();
