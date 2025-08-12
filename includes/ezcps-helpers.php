@@ -1,6 +1,6 @@
 <?php
 /**
- * Easy StagePush Sender - Helper functions
+ * Easy ContentPush Sender - Helper functions
  * Handles the Utility functions
  */
 

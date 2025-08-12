@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Easy StagePush Sender - Push to Live Logic
+ * Easy ContentPush Sender - Push to Live Logic
  * Handles the Push to Live button and AJAX
  */
 
@@ -49,7 +49,7 @@ class EZCPS_Push
         foreach ($post_types as $post_type) {
             add_meta_box(
                 'ezcps-push-to-live',
-                __('Easy StagePush', 'easy-content-push'),
+                __('Easy ContentPush', 'easy-content-push'),
                 array($this, 'ezcps_add_push_button'),
                 $post_type,
                 'side', // 'normal', 'side', or 'advanced'

@@ -78,7 +78,7 @@ class EZCPS_Settings
     {
 ?>
         <div class="wrap">
-            <h1><?php esc_html_e('Easy StagePush Sender Settings', 'easy-content-push'); ?></h1>
+            <h1><?php esc_html_e('Easy ContentPush Settings', 'easy-content-push'); ?></h1>
             <form method="post" action="options.php">
                 <?php
                 settings_fields('ezcps_settings_group');

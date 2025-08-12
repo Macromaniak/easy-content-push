@@ -11,7 +11,7 @@ Push posts, pages, custom content, ACF fields, media, taxonomies & SEO from stag
 
 === Description ===
 
-**Easy StagePush Sender** lets you safely and easily migrate content — including ACF fields, media files, featured images, taxonomy terms, and SEO metadata — directly from your staging/dev site to your production site. 
+**Easy ContentPush** lets you safely and easily migrate content — including ACF fields, media files, featured images, taxonomy terms, and SEO metadata — directly from your staging/dev site to your production site. 
 
 A “Push to Live” button appears in the editor sidebar for all supported post types. When you click the button, the plugin instantly transfers the post, including all custom fields and media references, to your live site using a secure REST API endpoint.
 
