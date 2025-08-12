@@ -124,7 +124,7 @@ class EZCPS_Settings
             return;
         }
         echo '<div class="notice notice-warning is-dismissible">
-            <p><strong>Easy ContentPush:</strong> ' . esc_html__('Make sure the Easy ContentPush plugin is installed and active on the production site as well for this to work.', 'easy-content-push') . '</p>
+            <p><strong>Easy ContentPush:</strong> ' . esc_html__('Make sure the Easy ContentPush plugin is installed and active on the target site as well for this to work.', 'easy-content-push') . '</p>
         </div>';
     }
 
