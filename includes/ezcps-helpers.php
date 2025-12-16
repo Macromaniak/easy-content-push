@@ -92,4 +92,35 @@ if (! defined('ABSPATH')) exit;
         }
         return $data;
     }
+
+    /**
+	 * Build a map of taxonomy => slug => name for the outgoing payload.
+	 * This preserves term display names (including casing) on the receiver.
+	 *
+	 * @param array $taxonomies Array of taxonomy => [slugs].
+	 * @return array
+	 */
+	function ezcps_get_taxonomy_term_names_for_transfer( array $taxonomies ): array {
+		$out = array();
+
+		foreach ( $taxonomies as $taxonomy => $slugs ) {
+			if ( ! is_array( $slugs ) ) {
+				continue;
+			}
+
+			foreach ( $slugs as $slug ) {
+				$slug = (string) $slug;
+				if ( $slug === '' ) {
+					continue;
+				}
+
+				$term = get_term_by( 'slug', $slug, $taxonomy );
+				if ( $term && ! is_wp_error( $term ) ) {
+					$out[ $taxonomy ][ $slug ] = $term->name;
+				}
+			}
+		}
+
+		return $out;
+	}
 ?>

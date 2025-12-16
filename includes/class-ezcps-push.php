@@ -118,10 +118,14 @@ class EZCPS_Push
             'post_date_gmt'     => $post->post_date_gmt,  // And this!
         ];
 
+        $taxonomies     = ezcps_get_post_taxonomies( $post_id, $post->post_type );
+        $taxonomy_terms = ezcps_get_taxonomy_term_names_for_transfer( $taxonomies );
+
         $payload = [
             'post'       => $post_data,
             'acf_fields' => $acf_fields,
             'taxonomies' => ezcps_get_post_taxonomies($post_id, $post->post_type),
+            'taxonomy_terms' => $taxonomy_terms,
             'yoast_meta' => ezcps_get_yoast_meta($post_id),
         ];
 
