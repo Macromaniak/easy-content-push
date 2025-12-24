@@ -2,7 +2,7 @@
 /*
 Plugin Name: Easy ContentPush
 Description: Push posts with fields and media to the production site on demand.
-Version: 1.2
+Version: 1.2.1
 Requires at least: 6.3
 Requires PHP: 7.2.24
 Author: Anandhu Nadesh
