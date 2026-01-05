@@ -191,32 +191,95 @@ class EZCPS_Importer
         return false;
     }
 
-    // Sideload file (helper function)
-    public static function ezcps_sideload_file($url, $post_id)
-    {
-        require_once ABSPATH . 'wp-admin/includes/file.php';
-        require_once ABSPATH . 'wp-admin/includes/media.php';
-        require_once ABSPATH . 'wp-admin/includes/image.php';
+    /**
+	 * Download a remote media file and attach it to a post.
+	 *
+	 * This implementation intentionally avoids WordPress' download_url()
+	 * because local-to-local environments (DDEV, Docker, .ddev.site)
+	 * frequently trigger SSRF protections and silent failures.
+	 *
+	 * Instead, the file is streamed to disk via curl, which is:
+	 * - memory efficient
+	 * - reliable for images and PDFs
+	 * - safe for local and production environments
+	 *
+	 * @param string $url     Absolute URL to the remote file.
+	 * @param int    $post_id Post ID the media should be attached to.
+	 *
+	 * @return int|WP_Error Attachment ID on success, WP_Error on failure.
+	 */
+	public static function ezcps_sideload_file( $url, $post_id ) {
 
-        $tmp = download_url($url);
-        if (is_wp_error($tmp)) return $tmp;
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/media.php';
+		require_once ABSPATH . 'wp-admin/includes/image.php';
 
-        $file_array = [
-            'name'     => basename($url),
-            'tmp_name' => $tmp,
-        ];
+		// Normalise and validate URL
+		$url = trim( (string) $url );
+		$url = esc_url_raw( $url );
 
-        add_filter('upload_mimes', [__CLASS__, 'ezcps_allow_svg_mime']);
-        $id = media_handle_sideload($file_array, $post_id);
-        remove_filter('upload_mimes', [__CLASS__, 'ezcps_allow_svg_mime']);
+		if ( empty( $url ) ) {
+			return new WP_Error( 'invalid_url', 'Empty media URL' );
+		}
 
-        if (is_wp_error($id)) {
-            @unlink($file_array['tmp_name']);
-            return false;
-        }
+		/**
+		 * Create a temporary file.
+		 * wp_tempnam() ensures the file is writable and cleaned up later.
+		 */
+		$tmp = wp_tempnam( $url );
+		if ( ! $tmp ) {
+			return new WP_Error( 'temp_file_error', 'Unable to create temporary file' );
+		}
 
-        return $id;
-    }
+		/**
+		 * Download the file using curl.
+		 * -L follows redirects
+		 * --fail causes non-2xx responses to error
+		 * Streaming avoids loading the file into PHP memory
+		 */
+		$cmd = sprintf(
+			'curl -L --fail --silent --show-error --output %s %s',
+			escapeshellarg( $tmp ),
+			escapeshellarg( $url )
+		);
+
+		exec( $cmd, $output, $exit_code );
+
+		// Validate download
+		if ( $exit_code !== 0 || ! file_exists( $tmp ) || filesize( $tmp ) === 0 ) {
+			@unlink( $tmp );
+			return new WP_Error(
+				'download_failed',
+				'Media download failed via curl (exit code ' . $exit_code . ')'
+			);
+		}
+
+		/**
+		 * Build file array for media_handle_sideload().
+		 * Use path-only basename to avoid query string corruption.
+		 */
+		$file_array = array(
+			'name'     => basename( parse_url( $url, PHP_URL_PATH ) ),
+			'tmp_name' => $tmp,
+		);
+
+		/**
+		 * Temporarily allow additional MIME types.
+		 * Images are already allowed by WordPress.
+		 * SVG and PDF often need to be explicitly permitted.
+		 */
+		add_filter( 'upload_mimes', array( __CLASS__, 'ezcps_allow_svg_mime' ) );
+		$attachment_id = media_handle_sideload( $file_array, $post_id );
+		remove_filter( 'upload_mimes', array( __CLASS__, 'ezcps_allow_svg_mime' ) );
+
+		// Clean up on failure
+		if ( is_wp_error( $attachment_id ) ) {
+			@unlink( $tmp );
+			return $attachment_id;
+		}
+
+		return $attachment_id;
+	}
 
     // Allow SVG mime type for uploads
     public static function ezcps_allow_svg_mime($mimes)
