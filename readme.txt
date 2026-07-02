@@ -2,8 +2,9 @@
 Contributors: anandhunadesh, phaseswpdev
 Tags: content-sync, acf, media, dev-to-live, migration
 Requires at least: 6.3
-Tested up to: 6.9
-Stable tag: 1.2.1
+Requires PHP: 7.4
+Tested up to: 7.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
@@ -59,7 +60,15 @@ Yes! The current post status (draft, published, scheduled, etc.) and post date a
 
 = Is authentication required? =
 
-Currently, the REST endpoint is resdtricted to receive content only from specified source URL.
+Currently, the REST endpoint is restricted to receive content only from specified source URL.
+
+== Changelog ==
+
+= 1.3.0 =
+* WordPress 7.0 compatibility: block editor sidebar panel for Push to Live (iframe-safe).
+* Bumped minimum PHP to 7.4.
+* Fixed receiver post import error handling and input sanitization.
+* Classic meta box retained as fallback with inline script for iframe contexts.
 
 = Will this create duplicate media? =
 

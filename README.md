@@ -2,8 +2,8 @@
 
 Push WordPress content from staging to production in one click — including ACF fields, media, taxonomies, SEO metadata, and more.
 
-![Stable Version](https://img.shields.io/badge/version-1.2-blue.svg)
-![WordPress Tested Up To](https://img.shields.io/badge/tested%20up%20to-6.8-green.svg)
+![Stable Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
+![WordPress Tested Up To](https://img.shields.io/badge/tested%20up%20to-7.0-green.svg)
 ![License](https://img.shields.io/badge/license-GPLv2%2B-lightgrey.svg)
 
 ---

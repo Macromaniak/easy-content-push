@@ -4,134 +4,175 @@ if (!defined('ABSPATH')) exit;
 class EZCPS_Importer
 {
 
-    // Register the REST API route
     public static function register()
     {
         add_action('rest_api_init', [__CLASS__, 'ezcps_register_routes']);
     }
 
-    // Register the endpoint
     public static function ezcps_register_routes()
     {
         register_rest_route('ezcps-sync/v1', '/import-post', [
-            'methods' => 'POST',
-            'callback' => [__CLASS__, 'ezcps_import_post_from_dev'],
-            'permission_callback' => [__CLASS__, 'ezcps_check_request_origin']
+            'methods'             => 'POST',
+            'callback'            => [__CLASS__, 'ezcps_import_post_from_dev'],
+            'permission_callback' => [__CLASS__, 'ezcps_check_request_origin'],
         ]);
     }
 
-    // Check the request origin
     public static function ezcps_check_request_origin($request)
     {
-        $source_url = rtrim(EZCPS_Settings::get_option('dev_url'), '/');
-        $origin = rtrim($request->get_header('X-EZCPS-Origin'), '/');
-
-        if (!$origin || empty($origin)) {
-            error_log('No origin header provided');
-            return new WP_Error(
-                'ezcps_missing_origin',
-                'No origin header provided!',
-                ['status' => 400]
-            );
+        $source_url = rtrim((string) EZCPS_Settings::get_option('dev_url'), '/');
+        if (empty($source_url)) {
+            return false;
         }
 
-        if ($origin !== $source_url) {
-            error_log('Unauthorized source');
-            return new WP_Error(
-                'ezcps_unauthorized',
-                'Unauthorized source!',
-                ['status' => 403]
-            );
+        $origin = rtrim((string) $request->get_header('X-EZCPS-Origin'), '/');
+        if (empty($origin) || $origin !== $source_url) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('EZCPS: Unauthorized or missing origin header.');
+            }
+            return false;
         }
 
         return true;
     }
 
-    // Callback function for importing post data
     public static function ezcps_import_post_from_dev($request)
     {
         $params = $request->get_json_params();
-        $post_data = $params['post'];
-        $acf_data = $params['acf_fields'];
-        $featured_image_url = $post_data['featured_image_url'] ?? null;
-        $page_template = $post_data['_wp_page_template'] ?? null;
-        $page_path = $post_data['path'] ?? null;
-        unset($post_data['featured_image_url']);
-        unset($post_data['_wp_page_template']);
-        unset($post_data['path']);
-
-        if (!empty($post_data['parent_lookup'])) {
-            $parent_path = $post_data['parent_lookup']['path'];
-            $parent_type = $post_data['parent_lookup']['post_type'];
-
-            $parent = get_page_by_path($parent_path, OBJECT, $parent_type);
-            if ($parent) {
-                $post_data['post_parent'] = $parent->ID;
-            }
-
-            unset($post_data['parent_lookup']);
+        if (empty($params['post']) || ! is_array($params['post'])) {
+            return new WP_REST_Response(['error' => 'Invalid post data.'], 400);
         }
 
-        $existing = get_page_by_path($page_path, OBJECT, $post_data['post_type']);
-        
-        if ($existing) {
-            error_log('post exists!!');
-            $post_data['ID'] = $existing->ID;
+        $post_data          = self::ezcps_sanitize_post_data($params['post']);
+        $acf_data           = is_array($params['acf_fields'] ?? null) ? $params['acf_fields'] : [];
+        $featured_image_url = ! empty($params['post']['featured_image_url']) ? esc_url_raw($params['post']['featured_image_url']) : null;
+        $page_template      = ! empty($params['post']['_wp_page_template']) ? sanitize_text_field($params['post']['_wp_page_template']) : null;
+        $page_path          = ! empty($params['post']['path']) ? sanitize_text_field($params['post']['path']) : null;
+
+        if (! empty($params['post']['parent_lookup']) && is_array($params['post']['parent_lookup'])) {
+            $parent_path = sanitize_text_field($params['post']['parent_lookup']['path'] ?? '');
+            $parent_type = sanitize_key($params['post']['parent_lookup']['post_type'] ?? '');
+
+            if ($parent_path && $parent_type) {
+                $parent = get_page_by_path($parent_path, OBJECT, $parent_type);
+                if ($parent) {
+                    $post_data['post_parent'] = $parent->ID;
+                }
+            }
         }
 
-        if ($post_id = wp_insert_post($post_data)) {
-            error_log('post inserted');
-            error_log($post_id);
-            if (is_wp_error($post_id)) {
-                return new WP_REST_Response(['error' => 'Post creation failed'], 500);
+        if ($page_path && ! empty($post_data['post_type'])) {
+            $existing = get_page_by_path($page_path, OBJECT, $post_data['post_type']);
+            if ($existing) {
+                $post_data['ID'] = $existing->ID;
+            }
+        }
+
+        $post_id = wp_insert_post($post_data, true);
+
+        if (is_wp_error($post_id)) {
+            return new WP_REST_Response(['error' => $post_id->get_error_message()], 500);
+        }
+
+        if (! $post_id) {
+            return new WP_REST_Response(['error' => 'Post creation failed.'], 500);
+        }
+
+        if ($page_template) {
+            update_post_meta($post_id, '_wp_page_template', $page_template);
+        }
+
+        if ($featured_image_url) {
+            $existing_id = self::ezcps_find_existing_attachment_by_url($featured_image_url);
+            if (! $existing_id) {
+                $existing_id = self::ezcps_sideload_file($featured_image_url, $post_id);
+            }
+            if ($existing_id && ! is_wp_error($existing_id)) {
+                set_post_thumbnail($post_id, $existing_id);
+            }
+        }
+
+        if (! empty($acf_data) && function_exists('update_field')) {
+            $acf_data = self::ezcps_handle_acf_media($acf_data, $post_id);
+            foreach ($acf_data as $key => $value) {
+                update_field($key, $value, $post_id);
+            }
+        }
+
+        $taxonomies = is_array($params['taxonomies'] ?? null) ? $params['taxonomies'] : [];
+        foreach ($taxonomies as $taxonomy => $slugs) {
+            $taxonomy = sanitize_key($taxonomy);
+            if (! taxonomy_exists($taxonomy) || ! is_array($slugs)) {
+                continue;
             }
 
-            if ($page_template)
-                update_post_meta($post_id, '_wp_page_template', $page_template);
-
-            if ($featured_image_url) {
-                $existing_id = self::ezcps_find_existing_attachment_by_url($featured_image_url);
-                if (!$existing_id) {
-                    $existing_id = self::ezcps_sideload_file($featured_image_url, $post_id);
+            $term_ids = [];
+            foreach ($slugs as $slug) {
+                $slug = sanitize_title($slug);
+                if (! $slug) {
+                    continue;
                 }
-                if ($existing_id) {
-                    set_post_thumbnail($post_id, $existing_id);
-                }
-            }
 
-            if (is_array($acf_data)) {
-                $acf_data = self::ezcps_handle_acf_media($acf_data, $post_id);
-                foreach ($acf_data as $key => $value) {
-                    update_field($key, $value, $post_id);
-                }
-            }
-
-            $taxonomies = $params['taxonomies'] ?? [];
-            foreach ($taxonomies as $taxonomy => $slugs) {
-                $term_ids = [];
-                foreach ($slugs as $slug) {
-                    $term = get_term_by('slug', $slug, $taxonomy);
-                    if (!$term) {
-                        $term = wp_insert_term(str_replace('-', ' ', $slug), $taxonomy, ['slug' => $slug]);
-                        if (is_wp_error($term)) continue;
-                        $term_ids[] = $term['term_id'];
-                    } else {
-                        $term_ids[] = $term->term_id;
+                $term = get_term_by('slug', $slug, $taxonomy);
+                if (! $term) {
+                    $term = wp_insert_term(str_replace('-', ' ', $slug), $taxonomy, ['slug' => $slug]);
+                    if (is_wp_error($term)) {
+                        continue;
                     }
+                    $term_ids[] = $term['term_id'];
+                } else {
+                    $term_ids[] = $term->term_id;
                 }
+            }
+
+            if (! empty($term_ids)) {
                 wp_set_object_terms($post_id, $term_ids, $taxonomy);
             }
+        }
 
-            $yoast_meta = $params['yoast_meta'] ?? [];
-            foreach ($yoast_meta as $meta_key => $meta_value) {
-                update_post_meta($post_id, $meta_key, $meta_value);
+        $yoast_meta = is_array($params['yoast_meta'] ?? null) ? $params['yoast_meta'] : [];
+        $allowed_yoast_keys = [
+            '_yoast_wpseo_title',
+            '_yoast_wpseo_metadesc',
+            '_yoast_wpseo_focuskw',
+            '_yoast_wpseo_canonical',
+            '_yoast_wpseo_opengraph-title',
+            '_yoast_wpseo_opengraph-description',
+            '_yoast_wpseo_twitter-title',
+            '_yoast_wpseo_twitter-description',
+        ];
+        foreach ($yoast_meta as $meta_key => $meta_value) {
+            if (in_array($meta_key, $allowed_yoast_keys, true)) {
+                update_post_meta($post_id, $meta_key, sanitize_text_field($meta_value));
             }
         }
 
         return new WP_REST_Response(['post_id' => $post_id], 200);
     }
 
-    // Handle ACF media fields
+    private static function ezcps_sanitize_post_data($post_data)
+    {
+        $sanitized = [
+            'post_title'   => sanitize_text_field($post_data['post_title'] ?? ''),
+            'post_content' => wp_kses_post($post_data['post_content'] ?? ''),
+            'post_status'  => sanitize_key($post_data['post_status'] ?? 'draft'),
+            'post_name'    => sanitize_title($post_data['post_name'] ?? ''),
+            'post_type'    => sanitize_key($post_data['post_type'] ?? 'post'),
+            'post_date'    => $post_data['post_date'] ?? current_time('mysql'),
+            'post_date_gmt'=> $post_data['post_date_gmt'] ?? current_time('mysql', 1),
+        ];
+
+        if (! empty($post_data['ID'])) {
+            $sanitized['ID'] = absint($post_data['ID']);
+        }
+
+        if (! empty($post_data['post_parent'])) {
+            $sanitized['post_parent'] = absint($post_data['post_parent']);
+        }
+
+        return $sanitized;
+    }
+
     public static function ezcps_handle_acf_media($fields, $post_id)
     {
         foreach ($fields as $key => &$value) {
@@ -156,7 +197,6 @@ class EZCPS_Importer
         return $fields;
     }
 
-    // Resolve post reference
     public static function ezcps_resolve_post_reference($ref)
     {
         if (is_array($ref) && isset($ref['post_type'], $ref['slug'])) {
@@ -166,7 +206,6 @@ class EZCPS_Importer
         return null;
     }
 
-    // Find existing attachment by URL
     public static function ezcps_find_existing_attachment_by_url($url)
     {
         $filename = basename(parse_url($url, PHP_URL_PATH));
@@ -191,7 +230,6 @@ class EZCPS_Importer
         return false;
     }
 
-    // Sideload file (helper function)
     public static function ezcps_sideload_file($url, $post_id)
     {
         require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -218,7 +256,6 @@ class EZCPS_Importer
         return $id;
     }
 
-    // Allow SVG mime type for uploads
     public static function ezcps_allow_svg_mime($mimes)
     {
         $mimes['svg'] = 'image/svg+xml';
@@ -226,5 +263,4 @@ class EZCPS_Importer
     }
 }
 
-// To initialize (do this once, e.g. in your plugin bootstrap):
 EZCPS_Importer::register();

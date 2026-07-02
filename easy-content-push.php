@@ -2,10 +2,11 @@
 /*
 Plugin Name: Easy ContentPush
 Description: Push posts with fields and media to the production site on demand.
-Version: 1.2.1
+Version: 1.3.0
 Requires at least: 6.3
-Requires PHP: 7.2.24
+Requires PHP: 7.4
 Author: Anandhu Nadesh
+Author URI: https://profiles.wordpress.org/anandhunadesh/
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 Text Domain: easy-content-push
@@ -13,6 +14,7 @@ Text Domain: easy-content-push
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+define( 'EZCPS_VERSION', '1.3.0' );
 define( 'EZCPS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EZCPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
