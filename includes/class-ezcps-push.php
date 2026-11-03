@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Easy ContentPush Sender - Push to Live Logic
- * Handles the Push to Live button and AJAX
+ * Easy ContentPush Sender - push content logic
+ * Handles the Push content button and AJAX
  */
 
 if (! defined('ABSPATH')) exit;
@@ -28,22 +28,11 @@ class EZCPS_Push
             return;
         }
 
-        wp_enqueue_script(
+        wp_enqueue_style(
             'ezcps-block-editor',
-            EZCPS_PLUGIN_URL . 'assets/js/ezcps-block-editor.js',
-            ['wp-plugins', 'wp-edit-post', 'wp-editor', 'wp-element', 'wp-components', 'wp-data', 'wp-i18n'],
-            EZCPS_VERSION,
-            true
-        );
-
-        wp_localize_script(
-            'ezcps-block-editor',
-            'ezcpsBlockEditor',
-            [
-                'ajaxUrl'    => admin_url('admin-ajax.php'),
-                'nonce'      => wp_create_nonce('ezcps_push_to_live'),
-                'postTypes'  => array_values($post_types),
-            ]
+            EZCPS_PLUGIN_URL . 'assets/css/ezcps-block-editor.css',
+            [],
+            EZCPS_VERSION
         );
     }
 
@@ -65,6 +54,13 @@ class EZCPS_Push
         if (use_block_editor_for_post_type($post->post_type)) {
             return;
         }
+
+        wp_enqueue_style(
+            'ezcps-block-editor',
+            EZCPS_PLUGIN_URL . 'assets/css/ezcps-block-editor.css',
+            [],
+            EZCPS_VERSION
+        );
 
         wp_enqueue_script(
             'ezcps-admin-js',
@@ -94,7 +90,10 @@ class EZCPS_Push
                 array($this, 'ezcps_add_push_button'),
                 $post_type,
                 'side',
-                'high'
+                'high',
+                [
+                    '__block_editor_compatible_meta_box' => true,
+                ]
             );
         }
     }
@@ -115,8 +114,8 @@ class EZCPS_Push
         $ajax_url = admin_url('admin-ajax.php');
         $post_id  = $post->ID;
 
-        echo '<div id="ezcps-push-to-live-container" style="margin-top:15px;">';
-        echo '<button type="button" class="button button-primary" id="ezcps-push-to-live-btn">' . esc_html__('Push to Live', 'easy-content-push') . '</button>';
+        echo '<div id="ezcps-push-to-live-container" class="ezcps-push-meta-box">';
+        echo '<button type="button" class="button button-primary" id="ezcps-push-to-live-btn">' . esc_html__('Push content', 'easy-content-push') . '</button>';
         echo '<p id="ezcps-push-to-live-msg"></p>';
         echo '</div>';
 
@@ -130,15 +129,32 @@ class EZCPS_Push
                 return;
             }
             btn.dataset.ezcpsBound = '1';
+            function ezcpsGetPostId() {
+                if (window.wp && wp.data && wp.data.select) {
+                    try {
+                        var editorId = wp.data.select('core/editor').getCurrentPostId();
+                        if (editorId) {
+                            return String(editorId);
+                        }
+                    } catch (err) {}
+                }
+                return '<?php echo esc_js((string) $post_id); ?>';
+            }
             btn.addEventListener('click', function (e) {
                 e.preventDefault();
+                var currentPostId = ezcpsGetPostId();
+                if (!currentPostId || currentPostId === '0') {
+                    msg.style.color = 'red';
+                    msg.textContent = '<?php echo esc_js(__('Save the post first, then push.', 'easy-content-push')); ?>';
+                    return;
+                }
                 btn.disabled = true;
                 msg.textContent = '<?php echo esc_js(__('Pushing...', 'easy-content-push')); ?>';
                 msg.style.color = '';
                 var formData = new FormData();
                 formData.append('action', 'ezcps_push_to_live');
                 formData.append('security', '<?php echo esc_js($nonce); ?>');
-                formData.append('post_id', '<?php echo esc_js((string) $post_id); ?>');
+                formData.append('post_id', currentPostId);
                 fetch('<?php echo esc_url($ajax_url); ?>', {
                     method: 'POST',
                     credentials: 'same-origin',
@@ -180,18 +196,22 @@ class EZCPS_Push
             wp_send_json_error(['message' => __('Post not found.', 'easy-content-push')]);
         }
 
-        $dev_url  = EZCPS_Settings::get_option('dev_url');
-        if (empty($dev_url)) {
-            $dev_url = get_site_url();
-        }
         $prod_url = EZCPS_Settings::get_option('prod_url');
+        $push_key = EZCPS_Settings::get_sync_key('push_key');
 
         if (empty($prod_url)) {
-            wp_send_json_error(['message' => __('Production URL is not set.', 'easy-content-push')]);
+            wp_send_json_error(['message' => __('Target site URL is not set.', 'easy-content-push')]);
         }
 
+        if ($push_key === '') {
+            wp_send_json_error(['message' => __('Push key is not set. Add the receive key from the target site in Settings → Easy ContentPush.', 'easy-content-push')]);
+        }
+
+        $source_url = ezcps_normalize_site_url(get_site_url());
+        $target_url = ezcps_normalize_site_url($prod_url);
+
         $acf_fields = function_exists('get_fields') ? ezcps_prepare_acf_fields_for_transfer(get_fields($post_id)) : [];
-        $acf_fields = ezcps_replace_dev_urls($acf_fields, $dev_url, $prod_url);
+        $acf_fields = ezcps_replace_dev_urls($acf_fields, $source_url, $target_url);
 
         $thumbnail_id = get_post_thumbnail_id($post_id);
         $thumbnail_url = $thumbnail_id ? ezcps_get_original_image_url($thumbnail_id) : null;
@@ -222,11 +242,12 @@ class EZCPS_Push
             'yoast_meta' => ezcps_get_yoast_meta($post_id),
         ];
 
+        $body     = wp_json_encode($payload);
         $response = wp_remote_post(
             trailingslashit($prod_url) . 'wp-json/ezcps-sync/v1/import-post',
             [
-                'headers' => ['Content-Type' => 'application/json', 'X-EZCPS-Origin' => get_site_url()],
-                'body'    => wp_json_encode($payload),
+                'headers' => ezcps_build_sync_request_headers($body, $push_key),
+                'body'    => $body,
                 'timeout' => 20,
             ]
         );
@@ -241,13 +262,23 @@ class EZCPS_Push
         $body = wp_remote_retrieve_body($response);
         $data = json_decode($body, true);
 
+        $code = (int) wp_remote_retrieve_response_code($response);
+        if ($code === 401 || $code === 403) {
+            wp_send_json_error([
+                'message' => __('Push was rejected by the target site. Check the push key and that this site\'s URL is listed under sender sites on the target.', 'easy-content-push'),
+            ]);
+        }
+
         if (! isset($data['post_id'])) {
             if (isset($data['message'])) {
                 wp_send_json_error(['message' => $data['message']]);
             }
+            if (isset($data['error'])) {
+                wp_send_json_error(['message' => $data['error']]);
+            }
             wp_send_json_error(['message' => __('Something went wrong!', 'easy-content-push')]);
         }
 
-        wp_send_json_success(['message' => __('Successfully pushed to live.', 'easy-content-push')]);
+        wp_send_json_success(['message' => __('Content pushed successfully.', 'easy-content-push')]);
     }
 }

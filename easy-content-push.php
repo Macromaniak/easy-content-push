@@ -2,7 +2,7 @@
 /*
 Plugin Name: Easy ContentPush
 Description: Push posts with fields and media to the production site on demand.
-Version: 1.3.0
+Version: 1.4.0
 Requires at least: 6.3
 Requires PHP: 7.4
 Author: Anandhu Nadesh
@@ -14,7 +14,9 @@ Text Domain: easy-content-push
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-define( 'EZCPS_VERSION', '1.3.0' );
+define( 'EZCPS_VERSION', '1.4.0' );
+
+add_action( 'plugins_loaded', 'ezcps_maybe_upgrade_settings' );
 define( 'EZCPS_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EZCPS_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 
@@ -25,5 +27,5 @@ require_once EZCPS_PLUGIN_DIR . 'includes/class-ezcps-receiver.php';
 
 // Initialize settings.
 new EZCPS_Settings();
-// Initialize Push-to-Live.
+// Initialize push content (editor control).
 new EZCPS_Push();

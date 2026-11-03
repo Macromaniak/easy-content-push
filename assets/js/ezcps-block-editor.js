@@ -1,7 +1,20 @@
 ( function ( wp ) {
+	if ( ! wp || ! wp.plugins || ! wp.element ) {
+		return;
+	}
+
 	const { registerPlugin } = wp.plugins;
-	const { PluginSidebar } = wp.editor || wp.editPost;
-	const { PanelBody, Button } = wp.components;
+	const editPost = wp.editPost || {};
+	const editor = wp.editor || {};
+	const PluginDocumentSettingPanel = editPost.PluginDocumentSettingPanel;
+	const PluginSidebar = editPost.PluginSidebar || editor.PluginSidebar;
+	const PanelComponent = PluginDocumentSettingPanel || PluginSidebar;
+
+	if ( ! PanelComponent ) {
+		return;
+	}
+
+	const { Button } = wp.components;
 	const { useSelect } = wp.data;
 	const { useState, createElement: el } = wp.element;
 	const { __ } = wp.i18n;
@@ -9,7 +22,7 @@
 	const config = window.ezcpsBlockEditor || {};
 	const allowedPostTypes = config.postTypes || [];
 
-	function PushToLivePanel() {
+	function PushContentPanel() {
 		const postId = useSelect(
 			( select ) => select( 'core/editor' ).getCurrentPostId(),
 			[]
@@ -24,7 +37,7 @@
 		const [ isError, setIsError ] = useState( false );
 		const [ isLoading, setIsLoading ] = useState( false );
 
-		if ( ! allowedPostTypes.includes( postType ) ) {
+		if ( ! postType || ! allowedPostTypes.includes( postType ) ) {
 			return null;
 		}
 
@@ -71,26 +84,52 @@
 				} );
 		};
 
+		const panelProps = PluginDocumentSettingPanel
+			? {
+					name: 'ezcps-push-content',
+					title: __( 'Easy ContentPush', 'easy-content-push' ),
+					className: 'ezcps-document-panel',
+			  }
+			: {
+					name: 'ezcps-push-to-live',
+					title: __( 'Easy ContentPush', 'easy-content-push' ),
+					icon: 'upload',
+					className: 'ezcps-plugin-sidebar',
+			  };
+
 		return el(
-			PluginSidebar,
-			{
-				name: 'ezcps-push-to-live',
-				title: __( 'Easy ContentPush', 'easy-content-push' ),
-				icon: 'upload',
-			},
+			PanelComponent,
+			panelProps,
 			el(
-				PanelBody,
-				{ title: __( 'Push to Live', 'easy-content-push' ) },
-				el( Button, {
-					variant: 'primary',
-					onClick: handlePush,
-					isBusy: isLoading,
-					disabled: isLoading || ! postId,
-				}, __( 'Push to Live', 'easy-content-push' ) ),
+				'div',
+				{ className: 'ezcps-editor-panel' },
+				el(
+					'p',
+					{ className: 'ezcps-editor-panel__help' },
+					__(
+						'Send this post to your configured target site.',
+						'easy-content-push'
+					)
+				),
+				el(
+					Button,
+					{
+						variant: 'primary',
+						className: 'ezcps-push-button',
+						onClick: handlePush,
+						isBusy: isLoading,
+						disabled: isLoading || ! postId,
+					},
+					__( 'Push content', 'easy-content-push' )
+				),
 				message &&
 					el(
 						'p',
-						{ style: { color: isError ? '#d63638' : '#00a32a' } },
+						{
+							className:
+								'ezcps-push-message ' +
+								( isError ? 'is-error' : 'is-success' ),
+						},
 						message
 					)
 			)
@@ -98,7 +137,7 @@
 	}
 
 	registerPlugin( 'ezcps-push-to-live', {
-		render: PushToLivePanel,
+		render: PushContentPanel,
 		icon: 'upload',
 	} );
 } )( window.wp );

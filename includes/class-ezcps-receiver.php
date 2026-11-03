@@ -14,26 +14,62 @@ class EZCPS_Importer
         register_rest_route('ezcps-sync/v1', '/import-post', [
             'methods'             => 'POST',
             'callback'            => [__CLASS__, 'ezcps_import_post_from_dev'],
-            'permission_callback' => [__CLASS__, 'ezcps_check_request_origin'],
+            'permission_callback' => [__CLASS__, 'ezcps_verify_sync_request'],
+        ]);
+
+        register_rest_route('ezcps-sync/v1', '/ping', [
+            'methods'             => 'POST',
+            'callback'            => [__CLASS__, 'ezcps_ping'],
+            'permission_callback' => [__CLASS__, 'ezcps_verify_sync_request'],
         ]);
     }
 
-    public static function ezcps_check_request_origin($request)
+    /**
+     * @param WP_REST_Request $request Request object.
+     * @return bool
+     */
+    public static function ezcps_verify_sync_request($request)
     {
-        $source_url = rtrim((string) EZCPS_Settings::get_option('dev_url'), '/');
-        if (empty($source_url)) {
+        $allowed = EZCPS_Settings::get_allowed_origins();
+        $secret  = EZCPS_Settings::get_sync_key('accept_key');
+
+        if ($secret === '' || empty($allowed)) {
             return false;
         }
 
-        $origin = rtrim((string) $request->get_header('X-EZCPS-Origin'), '/');
-        if (empty($origin) || $origin !== $source_url) {
+        $origin = ezcps_normalize_site_url((string) $request->get_header('X-EZCPS-Origin'));
+        if ($origin === '' || ! in_array($origin, $allowed, true)) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('EZCPS: Unauthorized or missing origin header.');
+                error_log('EZCPS: Origin not allowed or missing.');
+            }
+            return false;
+        }
+
+        $body      = (string) $request->get_body();
+        $signature = (string) $request->get_header('X-EZCPS-Signature');
+
+        if (! ezcps_verify_sync_signature($body, $signature, $secret)) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('EZCPS: Invalid sync signature.');
             }
             return false;
         }
 
         return true;
+    }
+
+    /**
+     * @param WP_REST_Request $request Request object.
+     * @return WP_REST_Response
+     */
+    public static function ezcps_ping($request)
+    {
+        $params = $request->get_json_params();
+        if (! is_array($params) || ($params['ezcps_action'] ?? '') !== 'ping') {
+            return new WP_REST_Response(['error' => __('Invalid ping request.', 'easy-content-push')], 400);
+        }
+
+        return new WP_REST_Response(['ok' => true], 200);
     }
 
     public static function ezcps_import_post_from_dev($request)

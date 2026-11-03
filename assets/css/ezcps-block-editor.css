@@ -1,0 +1,95 @@
+/**
+ * Meta box styles for Push content (classic + block editor).
+ */
+
+#ezcps-push-to-live.postbox,
+#ezcps-push-to-live.postbox .inside,
+#ezcps-push-to-live-container,
+.ezcps-push-meta-box {
+	box-sizing: border-box;
+	max-width: 100%;
+	min-width: 0;
+}
+
+#ezcps-push-to-live.postbox .inside {
+	margin: 0;
+	padding: 12px 0 0;
+}
+
+#ezcps-push-to-live-container {
+	padding: 0 12px 12px;
+}
+
+#ezcps-push-to-live-btn {
+	display: inline-block;
+	width: auto;
+	max-width: 100%;
+	box-sizing: border-box;
+	white-space: normal;
+}
+
+#ezcps-push-to-live-msg {
+	margin: 10px 0 0;
+	font-size: 13px;
+	line-height: 1.4;
+	word-break: break-word;
+	overflow-wrap: break-word;
+}
+
+/* Block editor: main meta box area (default placement). */
+.edit-post-layout__metaboxes #ezcps-push-to-live-container,
+.meta-box-sortables #ezcps-push-to-live:not(.is-side-meta-box) #ezcps-push-to-live-container {
+	padding: 0 12px 12px;
+}
+
+/*
+ * Block editor sidebar (if the user moves the panel here): tight layout, no clipping.
+ */
+.interface-complementary-area #ezcps-push-to-live.postbox,
+.edit-post-sidebar #ezcps-push-to-live.postbox,
+.editor-sidebar #ezcps-push-to-live.postbox,
+.is-side-meta-box#ezcps-push-to-live {
+	overflow: visible;
+	max-width: 100%;
+}
+
+.interface-complementary-area #ezcps-push-to-live .inside,
+.edit-post-sidebar #ezcps-push-to-live .inside,
+.editor-sidebar #ezcps-push-to-live .inside,
+.is-side-meta-box#ezcps-push-to-live .inside {
+	overflow: visible;
+	max-height: none;
+	height: auto;
+	padding: 8px 0 12px;
+	margin: 0;
+}
+
+.interface-complementary-area #ezcps-push-to-live-container,
+.edit-post-sidebar #ezcps-push-to-live-container,
+.editor-sidebar #ezcps-push-to-live-container,
+.is-side-meta-box#ezcps-push-to-live #ezcps-push-to-live-container {
+	padding: 0 8px 4px;
+	overflow: hidden;
+}
+
+.interface-complementary-area #ezcps-push-to-live-btn,
+.edit-post-sidebar #ezcps-push-to-live-btn,
+.editor-sidebar #ezcps-push-to-live-btn,
+.is-side-meta-box#ezcps-push-to-live #ezcps-push-to-live-btn {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	font-size: 12px;
+	line-height: 1.35;
+	padding: 6px 6px;
+	min-height: 30px;
+	margin: 0;
+}
+
+.interface-complementary-area .meta-box-sortables,
+.edit-post-sidebar .meta-box-sortables,
+.editor-sidebar .meta-box-sortables {
+	min-width: 0;
+	max-width: 100%;
+}

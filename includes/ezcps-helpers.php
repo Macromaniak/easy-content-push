@@ -92,4 +92,142 @@ if (! defined('ABSPATH')) exit;
         }
         return $data;
     }
-?>
+
+/**
+ * Normalize a site URL for comparison (scheme, host, path; no trailing slash).
+ *
+ * @param string $url Raw URL.
+ * @return string Normalized URL or empty string if invalid.
+ */
+function ezcps_normalize_site_url($url)
+{
+    $url = trim((string) $url);
+    if ($url === '') {
+        return '';
+    }
+
+    $url = esc_url_raw($url);
+    if ($url === '') {
+        return '';
+    }
+
+    $parts = wp_parse_url($url);
+    if (empty($parts['host'])) {
+        return untrailingslashit($url);
+    }
+
+    $scheme = isset($parts['scheme']) ? strtolower($parts['scheme']) : 'https';
+    $host   = strtolower($parts['host']);
+    $port   = isset($parts['port']) ? ':' . (int) $parts['port'] : '';
+    $path   = isset($parts['path']) ? untrailingslashit($parts['path']) : '';
+
+    return $scheme . '://' . $host . $port . $path;
+}
+
+/**
+ * JSON body used for connection test (ping) requests.
+ *
+ * @return string
+ */
+function ezcps_get_ping_request_body()
+{
+    return wp_json_encode(['ezcps_action' => 'ping']);
+}
+
+/**
+ * Build request headers for a signed sync request.
+ *
+ * @param string $body    Raw JSON body.
+ * @param string $secret  Shared sync key.
+ * @return array<string, string>
+ */
+function ezcps_build_sync_request_headers($body, $secret)
+{
+    $origin = ezcps_normalize_site_url(get_site_url());
+
+    return [
+        'Content-Type'     => 'application/json',
+        'X-EZCPS-Origin'   => $origin,
+        'X-EZCPS-Signature' => ezcps_compute_sync_signature($body, $secret),
+    ];
+}
+
+/**
+ * Compute HMAC-SHA256 signature for a sync request body.
+ *
+ * @param string $body   Raw request body.
+ * @param string $secret Shared sync key.
+ * @return string Header value (sha256=...).
+ */
+function ezcps_compute_sync_signature($body, $secret)
+{
+    return 'sha256=' . hash_hmac('sha256', $body, $secret);
+}
+
+/**
+ * Verify sync request signature header against body and secret.
+ *
+ * @param string $body              Raw request body.
+ * @param string $signature_header  X-EZCPS-Signature header value.
+ * @param string $secret            Shared sync key.
+ * @return bool
+ */
+function ezcps_verify_sync_signature($body, $signature_header, $secret)
+{
+    if ($secret === '' || $signature_header === '') {
+        return false;
+    }
+
+    $expected = ezcps_compute_sync_signature($body, $secret);
+    $provided = trim((string) $signature_header);
+
+    if (strpos($provided, 'sha256=') !== 0) {
+        return false;
+    }
+
+    return hash_equals($expected, $provided);
+}
+
+/**
+ * Generate a cryptographically secure sync key.
+ *
+ * @return string
+ */
+function ezcps_generate_sync_key()
+{
+    if (function_exists('wp_generate_password')) {
+        return wp_generate_password(64, true, true);
+    }
+
+    return bin2hex(random_bytes(32));
+}
+
+/**
+ * Upgrade stored settings when the plugin is updated.
+ */
+function ezcps_maybe_upgrade_settings()
+{
+    $options = get_option('ezcps_settings', []);
+    if (! is_array($options)) {
+        $options = [];
+    }
+
+    $changed = false;
+
+    if (empty($options['allowed_origins']) && ! empty($options['dev_url'])) {
+        $legacy = ezcps_normalize_site_url($options['dev_url']);
+        if ($legacy !== '') {
+            $options['allowed_origins'] = [$legacy];
+            $changed                    = true;
+        }
+    }
+
+    if (! isset($options['allowed_origins']) || ! is_array($options['allowed_origins'])) {
+        $options['allowed_origins'] = [];
+        $changed                    = true;
+    }
+
+    if ($changed) {
+        update_option('ezcps_settings', $options, false);
+    }
+}

@@ -2,15 +2,15 @@
 
 Push WordPress content from staging to production in one click — including ACF fields, media, taxonomies, SEO metadata, and more.
 
-![Stable Version](https://img.shields.io/badge/version-1.3.0-blue.svg)
-![WordPress Tested Up To](https://img.shields.io/badge/tested%20up%20to-7.0-green.svg)
+![Stable Version](https://img.shields.io/badge/version-1.4.0-blue.svg)
+![WordPress Tested Up To](https://img.shields.io/badge/tested%20up%20to-7.1-green.svg)
 ![License](https://img.shields.io/badge/license-GPLv2%2B-lightgrey.svg)
 
 ---
 
 ## ✨ Features
 
-- “Push to Live” button in the block editor for posts, pages & custom post types
+- **Push content** button in the block editor for posts, pages & custom post types
 - Transfers:
   - ACF Flexible Content, Repeaters, Relationships, Groups
   - Featured images & media (no duplication)
@@ -23,7 +23,7 @@ Push WordPress content from staging to production in one click — including ACF
 
 ## ⚙️ How It Works
 
-When editing a post, page, or custom post type, a **“Push to Live”** button appears in the sidebar. Clicking this button instantly sends the post and all associated data — including ACF fields, taxonomy, media, SEO metadata, and scheduled status — to your production site via a secure REST API.
+When editing a post, page, or custom post type, a **Push content** button appears in the sidebar. Clicking it sends the post and all associated data — including ACF fields, taxonomy, media, SEO metadata, and scheduled status — to your configured target site via a signed REST API.
 
 ---
 
@@ -37,7 +37,7 @@ When editing a post, page, or custom post type, a **“Push to Live”** button 
 3. On your **production site**:
    - Go to `Settings → Easy ContentPush`
    - Set the **Origin Site URL** (your dev site)
-4. Edit a post and click **“Push to Live”** in the editor sidebar.
+4. Edit a post and click **Push content** in the editor sidebar.
 
 > ✅ Make sure both sites have the same post types, taxonomies, and ACF field groups defined.
 

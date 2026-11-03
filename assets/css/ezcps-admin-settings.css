@@ -1,0 +1,85 @@
+.ezcps-settings .ezcps-settings-card {
+	border: 1px solid #c3c4c7;
+	background: #fff;
+	border-radius: 4px;
+	padding: 16px 20px 20px;
+	margin: 0 0 8px;
+	max-width: 720px;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.ezcps-settings .form-table th:empty {
+	display: none;
+	padding: 0;
+	border: 0;
+}
+
+.ezcps-settings .form-table td {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.ezcps-settings .ezcps-field {
+	margin-bottom: 16px;
+}
+
+.ezcps-settings .ezcps-field label {
+	display: block;
+	font-weight: 600;
+	margin-bottom: 6px;
+}
+
+.ezcps-settings .ezcps-field .description {
+	margin-top: 6px;
+	color: #646970;
+}
+
+.ezcps-settings .ezcps-origin-row {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	margin-bottom: 8px;
+	max-width: 640px;
+}
+
+.ezcps-settings .ezcps-origin-row input[type="url"] {
+	flex: 1;
+}
+
+.ezcps-settings .ezcps-key-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	max-width: 640px;
+}
+
+.ezcps-settings .ezcps-key-row input[type="password"],
+.ezcps-settings .ezcps-key-row input[type="text"].ezcps-key-input {
+	flex: 1;
+	min-width: 220px;
+}
+
+.ezcps-settings .ezcps-divider {
+	border-top: 1px solid #dcdcde;
+	margin: 20px 0;
+}
+
+.ezcps-settings .ezcps-test-result {
+	margin-top: 10px;
+	max-width: 640px;
+}
+
+.ezcps-settings .ezcps-test-result.is-success {
+	color: #00a32a;
+}
+
+.ezcps-settings .ezcps-test-result.is-error {
+	color: #d63638;
+}
+
+.ezcps-settings-intro {
+	max-width: 720px;
+	margin: 12px 0 20px;
+	color: #646970;
+}
